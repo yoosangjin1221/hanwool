@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기획서 — 설비고장 원인 진단</title>
+<meta name="robots" content="index,follow">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<style>
+.plan-figs figure{margin:0 0 22px;} .plan-figs img{width:100%;height:auto;border:1px solid var(--line);border-radius:10px;background:#fff;}
+.plan-figs figcaption{font-size:13px;color:var(--sub);text-align:center;margin-top:6px;}
+.plan td{white-space:normal;} .plan td .btn{min-height:36px;white-space:nowrap;}
+h3{font-size:15px;margin:16px 0 6px;} main ul{margin:0 0 10px 20px;}
+:root{--ink:#152232;--sub:#5b6b7b;--line:#d8e0e8;--brand:#154b6e;--bg:#f5f7fa;--container-pad:20px}
+@media (min-width:640px){:root{--container-pad:28px}} @media (min-width:1024px){:root{--container-pad:40px}}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Pretendard,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;word-break:keep-all;overflow-wrap:break-word}
+a{color:var(--brand)} .wrap,.topnav-inner{max-width:calc(1100px + 2*var(--container-pad));margin:0 auto;padding:0 var(--container-pad)}
+.topnav{background:#0d3350;color:#fff;position:sticky;top:0;z-index:5} .topnav-inner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;min-height:56px}
+.topnav-brand{color:#fff;text-decoration:none;font-weight:700} .topnav-brand small{font-weight:400;opacity:.75;margin-left:6px}
+.topnav-links{list-style:none;display:flex;gap:4px;margin:0;padding:0} .topnav-links a{color:#dbe7f0;text-decoration:none;padding:8px 12px;border-radius:8px;display:block} .topnav-links a.active,.topnav-links a:hover{background:rgba(255,255,255,.14);color:#fff}
+.hero{background:linear-gradient(180deg,#154b6e,#0d3350);color:#fff;padding:40px 0 36px} .hero h1{margin:6px 0 10px;font-size:clamp(24px,3.4vw,34px);color:#fff} .hero p{margin:0;opacity:.9;max-width:860px} .eyebrow{font-size:13px;opacity:.8}
+main{padding:28px 0 40px} .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;margin:0 0 20px} .sub{color:var(--sub)}
+.tablewrap{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:14.5px} th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top} th{background:#eef3f7;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;border-radius:8px;border:1px solid var(--brand);text-decoration:none;font-weight:600} .btn.primary{background:var(--brand);color:#fff}
+footer{border-top:1px solid var(--line);padding:20px 0 28px;color:var(--sub);font-size:13.5px}
+</style>
+</head>
+<body>
+<nav class="topnav" aria-label="주요 메뉴">
+  <div class="topnav-inner">
+    <a class="topnav-brand" href="index.html">설비고장 원인 진단 <small>data10-06 · 기획 유상진</small></a>
+    <ul class="topnav-links">
+      <li><a href="index.html">도구</a></li>
+      <li><a href="plan.html" class="active" aria-current="page">기획서</a></li>
+    </ul>
+  </div>
+</nav>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">현장 데이터 디지털화 전문가과정 · 2차수 · 프로젝트 06 · 기획서 v2.0</div>
+  <h1>설비고장 원인 진단 기획서</h1>
+  <p>증상을 넣으면 과거 정비 사례에서 가능한 고장 원인과 「먼저 확인할 것」을 짚어 주고, 쌓인 사례로 초보자용 자체 정비 가이드북과 외부 수리 비용 현황을 만드는 도구입니다.</p>
+</div></header>
+<main><div class="wrap">
+<div class="card">
+  <h2 style="margin-top:0">기획서 내려받기</h2>
+  <p class="sub">파이프라인 · 아키텍처 · 와이어프레임 · 개발일지가 들어간 워드 문서입니다. 버전마다 따로 남깁니다.</p>
+  <div class="tablewrap plan"><table><thead><tr><th>버전</th><th>날짜</th><th>바뀐 점</th><th>파일</th></tr></thead><tbody><tr><td><b>v2.0</b></td><td>2026-11-10</td><td>최종 기획서 — 파이프라인 · 아키텍처 · 와이어프레임 정리 / 로그인 · 사용 신청 · 관리자 승인(요청자 Supabase 로 옮길 수 있게) / 로그인 전 대문</td><td><a class="btn primary" href="docs/기획서/data10-06_유상진_설비고장원인진단_기획서_v2.0.docx" download>워드 내려받기</a></td></tr></tbody></table></div>
+</div>
+<div class="card plan">
+  <h2 style="margin-top:0">요구사항과 구현</h2>
+  <div class="tablewrap"><table><thead><tr><th>기획서 요구</th><th>구현</th></tr></thead><tbody><tr><td>고장 원인 진단 챗봇 — 증상을 넣으면 원인을 먼저 짚어 줌</td><td>한국어 글자 2개 묶음 유사도 + 증상 태그 + 같은 설비로 비슷한 사례를 찾아 원인 순위 · 근거 사례 수 · 먼저 확인할 것, AI 프롬프트(복사 · 선택 자동 보내기)</td></tr><tr><td>「우선 센서 연결부터 확인」처럼 첫 확인을 안내</td><td>사례의 안전 단계를 뺀 첫 조치 단계를 「먼저 확인할 것」으로, 예시가 그대로 나오는지 테스트로 묶음</td></tr><tr><td>초보자용 자체 정비 가이드북</td><td>원인별 카드 자동 초안 — 안전 먼저 · 확인 순서 · 「초보자는 여기까지」 선 · 공구 · 부품 · 전문가를 부를 때, 고치기 · 인쇄</td></tr><tr><td>정비 내역서 · 영수증 활용</td><td>수리이력 엑셀 그대로 가져오기(여러 시트 · 병합 셀 · 열 맞추기 · 원인 짐작 · 비용 미기재/무상/견적 구분)</td></tr><tr><td>고장 사진 · 동영상 활용</td><td>사례별 사진(줄인 사본), 엑셀 칸 위에 붙인 사진을 그 줄의 사례로. 동영상은 위치만</td></tr><tr><td>외부 수리 비용 줄이기</td><td>외부 비용 · 건수 · 자체 처리 비율, 월별 · 설비별 · 원인별, 자체 처리 전환 후보</td></tr><tr><td>현장 기록지(4차 양식)</td><td>빈 기록지 A4 인쇄, 채운 기록지 사진 → 본인 OpenAI 키로 읽기 → 칸별 확인 → 사례 등록</td></tr><tr><td>매뉴얼 근거 질의 · 팀 공유</td><td>2단계 — 지금은 매뉴얼 메모 발췌를 프롬프트에 넣고, 자료는 브라우저별 저장 + JSON 백업</td></tr></tbody></table></div>
+</div>
+<div class="card plan-figs"><h2 style="margin-top:0">그림으로 보기</h2><figure><img src="docs/img/pipeline.png" alt="처리 흐름(파이프라인)" loading="lazy"><figcaption>처리 흐름(파이프라인)</figcaption></figure><figure><img src="docs/img/architecture.png" alt="구성(아키텍처)" loading="lazy"><figcaption>구성(아키텍처)</figcaption></figure><figure><img src="docs/img/wireframe-1.png" alt="와이어프레임 — 로그인 전 대문" loading="lazy"><figcaption>와이어프레임 — 로그인 전 대문</figcaption></figure><figure><img src="docs/img/wireframe-2.png" alt="와이어프레임 — ① 증상 진단" loading="lazy"><figcaption>와이어프레임 — ① 증상 진단</figcaption></figure><figure><img src="docs/img/wireframe-3.png" alt="와이어프레임 — 현장 고장 기록지" loading="lazy"><figcaption>와이어프레임 — 현장 고장 기록지</figcaption></figure><figure><img src="docs/img/screen.png" alt="실제 화면(예제 데이터)" loading="lazy"><figcaption>실제 화면(예제 데이터)</figcaption></figure></div>
+<div class="card"><h2 style="margin-top:0">개발일지</h2><h3>2026-11-10 · 최종 기획서 · 로그인</h3><ul><li>로그인 · 사용 신청 · 관리자 승인 키트 적용(data1006_members)</li><li>로그인 전 대문 문구를 기획서에서 만듦</li><li>최종 기획서(워드 · plan.html) · README 정리</li><li>로직 테스트 75개 통과</li></ul><h3>2026-11-08 · 4차 — 권장 양식 점검 · 현장 기록지</h3><ul><li>권장 양식 정리본 49건 · 사진 58장 읽기 점검, 결함 4가지 고침</li><li>현장 고장 기록지 화면(js/fieldform.js) — A4 인쇄, 사진 → 본인 키로 읽기 → 확인 → 사례</li><li>테스트 66 → 75개</li></ul><h3>2026-10-27 · 3차 — 수정본 · 엑셀 사진 · 찾는 범위</h3><ul><li>수리이력 수정본(47건 · 사진 41장) 그대로 읽기, js/xlsx-images.js</li><li>「&gt;」 조치 순서 · 0원 · 미기재 구분, 수정본으로 바꾸기</li><li>진단 「찾는 범위」 — 설비를 고르면 이 설비 사례만</li><li>테스트 66개</li></ul><h3>2026-10-21 · 2차 — 실제 수리이력</h3><ul><li>수리이력 60건 그대로 읽기, 원인 짐작 · 비용 구분 · 처리 상태</li><li>자료 점검 화면, 권장 양식</li><li>테스트 55개</li></ul><h3>2026-10-20 · 1단계</h3><ul><li>가상 사례 30건으로 증상 진단 · 정비 사례 · 가이드북 · 비용 현황</li><li>사진 줄여 저장(IndexedDB), AI 프롬프트</li><li>테스트 37개</li></ul></div>
+</div></main>
+<footer><div class="wrap">현장 데이터 디지털화 전문가과정 · 2차수 · 프로젝트 06 · 기획 유상진 · <a href="https://data10-00.jobability.co.kr/">2차수 프로젝트 모음</a></div></footer>
+</body>
+</html>
