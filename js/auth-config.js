@@ -10,7 +10,7 @@ window.AUTH_CONFIG = {
   "localBypass": true,
   "board": true,
   "site": {
-    "title": "설비고장 원인 진단",
+    "title": "부자재생산팀 설비고장 원인 진단",
     "summary": "증상을 넣으면 과거 정비 사례에서 가능한 고장 원인과 「먼저 확인할 것」을 짚어 주고, 쌓인 사례로 초보자용 자체 정비 가이드북과 외부 수리 비용 현황을 만드는 도구입니다.",
     "course": "현장 데이터 디지털화 전문가과정 · 2차수",
     "features": [
