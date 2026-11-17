@@ -6,7 +6,7 @@
   var FF = window.FixFieldForm, L = window.FixLogic, S = window.FixStore, P = window.FixPhotos, C = window.FixCharts, AIP = window.AIPanel, SMP = window.FixSample, XI = window.FixXlsxImages;
   /* 판 맞추기 — 브라우저가 옛 logic.js 와 새 app.js 를 섞어 쓰면(Pages 캐시) 버튼과 결과가 어긋날 수 있어, 섞였으면 계산하지 않고 새로고침을 안내합니다.
      판은 scripts/bump-version.mjs 로 index.html(?v=) · logic.js 와 함께 올립니다. */
-  var APP_VERSION = '2026-11-11.8';
+  var APP_VERSION = '2026-11-17.1';
   if (!L || L.VERSION !== APP_VERSION) {
     var m0 = document.getElementById('main') || document.body;
     m0.innerHTML = '<section class="card" id="versionMismatch"><h1>새 판이 나왔습니다 — 새로고침(Ctrl+F5)해 주세요</h1><p class="alert warn">이 브라우저가 옛 파일과 새 파일을 섞어 불러왔습니다(js/logic.js ' +
@@ -67,6 +67,7 @@
     b.hidden = ok;
     b.textContent = ok ? '' : '브라우저 저장소에 저장하지 못했습니다(막혀 있거나 가득 참). 이 창을 닫으면 사라지니 「설정 → 백업 내려받기」 로 받아 두세요.';
     topbar();
+    if (window.FixCloud) window.FixCloud.changed();   // 팀 저장소(js/cloud.js) — 바뀐 사례만 올립니다
     return ok;
   }
   function download(name, blob) {
@@ -111,7 +112,8 @@
   function equipTypes() { return L.equipTypes(db); }
   function equipOf(name) { return db.equipments.filter(function (e) { return e.name === name; })[0] || null; }
   function caseById(id) { return db.cases.filter(function (c) { return c.id === id; })[0] || null; }
-  function nextId() { db.seq = (db.seq || 0) + 1; return 'c' + db.seq; }
+  /* 팀 저장소를 쓰는 동안에는 여러 브라우저가 같은 번호를 만들지 않게 겹치지 않는 번호를 씁니다 */
+  function nextId() { db.seq = (db.seq || 0) + 1; return window.FixCloud && window.FixCloud.active() ? window.FixCloud.newId() : 'c' + db.seq; }
   /* 2차 — 실제 수리이력 표기: 「2025-03 2주차」 · 비용 미기재/견적/개당 · 원인 짐작 · 처리 상태 */
   function dateText(c) {
     if (!c.date) return '날짜 없음';
@@ -252,7 +254,8 @@
   function topbar() {
     var chip = document.getElementById('dataChip'); chip.textContent = '';
     add(chip, ['정비 사례 ' + db.cases.length + '건', h('span', { class: 'dim' }, '설비 ' + db.equipments.length + '대 · 원인 ' + L.causeList(db.cases).length + '가지')]);
-    document.getElementById('storeNote').textContent = S.available() ? '이 브라우저에 저장됨 · ' + S.sizeKb() + 'KB' : '저장 안 됨 — 백업을 받아 두세요';
+    var cloudNote = window.FixCloud ? window.FixCloud.note() : '';
+    document.getElementById('storeNote').textContent = cloudNote || (S.available() ? '이 브라우저에 저장됨 · ' + S.sizeKb() + 'KB' : '저장 안 됨 — 백업을 받아 두세요');
     var b = document.getElementById('sampleBanner');
     b.hidden = !db._sample; b.textContent = '';
     if (db._sample) add(b, ['예시 데이터(가상)를 쓰는 중입니다 — 설비 A~E 와 정비 사례 30건은 모두 지어낸 값입니다. ',
@@ -1186,7 +1189,7 @@
         h('label', { class: 'btn' }, '백업 되살리기', restoreIn),
         h('button', { type: 'button', class: 'btn', onclick: loadSample }, '예시 데이터 불러오기'),
         h('button', { type: 'button', class: 'btn btn-danger', onclick: clearAll }, '모두 지우기')),
-      h('p', { class: 'note' }, '정비 사례는 이 브라우저에만 있습니다. 다른 PC 로 옮기거나 브라우저 데이터를 지우기 전에 백업을 받아 두세요.')));
+      h('p', { class: 'note' }, window.FixCloud && window.FixCloud.active() ? '정비 사례와 사진은 팀 저장소에도 올라갑니다(위쪽 메뉴 「팀 저장소」). 백업 파일은 따로 보관해 두는 사본입니다.' : '정비 사례는 이 브라우저에만 있습니다. 다른 PC 로 옮기거나 브라우저 데이터를 지우기 전에 백업을 받아 두세요.')));
     return wrap;
   }
   function editEquipment(i) {
@@ -1449,6 +1452,22 @@
     if (lastRoute !== location.hash) { window.scrollTo(0, 0); lastRoute = location.hash; } else window.scrollTo(0, y);
   }
   window.addEventListener('hashchange', function () { render(); main.focus({ preventScroll: true }); });
+  /* 팀 저장소(js/cloud.js)가 쓰는 문 — 받아 온 자료를 넣은 뒤 touch() 를 부릅니다.
+     창이 열려 있거나 글을 넣는 중이면 화면을 바로 다시 그리지 않고(쓰던 글이 사라지지 않게) 끝난 뒤에 그립니다. */
+  var pendingRender = false;
+  function softRender() {
+    var a = document.activeElement, lb = document.getElementById('lightbox');
+    var typing = a && main.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+    if (dlg.open || (lb && lb.open) || typing) { pendingRender = true; return false; }
+    pendingRender = false; ui.diag.result = null; render(); return true;
+  }
+  setInterval(function () { if (pendingRender) softRender(); }, 3000);
+  window.FixApp = {
+    db: function () { return db; },
+    touch: function () { S.saveDb(db); topbar(); softRender(); },
+    topbar: topbar,
+    toast: toast
+  };
   if (!S.available()) save();
   render();
   gcPhotos();

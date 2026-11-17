@@ -37,11 +37,11 @@
        탭 전환·포커스로는 옮기지 않는다(입력 유실). ETag 는 Cloudflare 가 지워서 쓸 수 없다. 원본: dreamit-1000/scripts/fresh-guard/guard.html
        file:// 로 열면 아무것도 하지 않는다 — file 주소는 fetch 를 못 해 콘솔 오류만 남기 때문(2026-10-27, data10-07 과 같게). -->
   <script>(function(){try{var L=location,P='_fg',h=window.history,q=L.search;if(L.protocol==='file:')return;if(/[?&]_fg=/.test(q)&&h&&h.replaceState){q=q.replace(/([?&])_fg=[^&]*&?/,'$1').replace(/[?&]$/,'');h.replaceState(h.state,'',L.pathname+q+L.hash);}var d=Date.parse(document.lastModified),u=L.pathname+L.search,k='__fresh_guard',t=0;if(!d||!window.fetch||!window.sessionStorage)return;var g=function(s,v){return s+(s.indexOf('?')<0?'?':'&')+P+'='+v;};var c=function(){var n=Date.now();if(n-t<15000)return;t=n;fetch(g(u,n),{method:'HEAD',cache:'no-store'}).then(function(r){var lm=r.headers.get('last-modified'),f=lm&&Date.parse(lm);if(!f||f<=d+1000)return;if(sessionStorage.getItem(k)===lm)return;sessionStorage.setItem(k,lm);L.replace(g(L.pathname+L.search,f)+L.hash);})['catch'](function(){});};c();var p=h&&h.pushState;if(p)h.pushState=function(){var x=p.apply(this,arguments);c();return x;};addEventListener('hashchange',c);addEventListener('popstate',c);}catch(e){}})();</script>
-  <link rel="stylesheet" href="css/style.css?v=2026-11-11.8">
+  <link rel="stylesheet" href="css/style.css?v=2026-11-17.1">
   <!-- auth-kit: 로그인 전에는 도구 화면을 감춘다(js/auth.js 가 판정 뒤 푼다) -->
   <script>document.documentElement.classList.add('auth-lock')</script>
-  <link rel="stylesheet" href="css/auth.css?v=2026-11-11.8">
-  <link rel="stylesheet" href="css/board.css?v=2026-11-11.8">
+  <link rel="stylesheet" href="css/auth.css?v=2026-11-17.1">
+  <link rel="stylesheet" href="css/board.css?v=2026-11-17.1">
   <!-- /auth-kit -->
 </head>
 <body>
@@ -65,9 +65,10 @@
       </header>
       <div id="sampleBanner" class="sample-banner" hidden></div>
       <div id="storeBanner" class="store-banner" hidden></div>
+      <div id="cloudBanner" class="cloud-banner" hidden></div>
       <main id="main" class="main" tabindex="-1"></main>
       <footer class="site-footer">
-        v2.0 · 정비 사례와 사진은 이 브라우저 안에서만 저장합니다(서버로 보내지 않음) · AI 자동 보내기는 설정한 경우에만 · 진단은 과거 사례 기반 추정이며, 작업 전 반드시 전원 차단·잠금(LOTO)
+        v2.0 · <span id="storeFoot">정비 사례와 사진은 이 브라우저 안에서만 저장합니다(서버로 보내지 않음)</span> · AI 자동 보내기는 설정한 경우에만 · 진단은 과거 사례 기반 추정이며, 작업 전 반드시 전원 차단·잠금(LOTO)
       </footer>
     </div>
   </div>
@@ -96,22 +97,24 @@
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- 로컬 파일(file://)로 열어도 돌도록 module 이 아닌 일반 스크립트로 불러옵니다 -->
-  <script src="vendor/xlsx.full.min.js?v=2026-11-11.8"></script>
-  <script src="js/xlsx-images.js?v=2026-11-11.8"></script>
-  <script src="js/logic.js?v=2026-11-11.8"></script>
-  <script src="js/fieldform.js?v=2026-11-11.8"></script>
-  <script src="js/sample-data.js?v=2026-11-11.8"></script>
-  <script src="js/store.js?v=2026-11-11.8"></script>
-  <script src="js/photos.js?v=2026-11-11.8"></script>
-  <script src="js/charts.js?v=2026-11-11.8"></script>
-  <script src="js/ai-endpoint.js?v=2026-11-11.8"></script>
-  <script src="js/ai-panel.js?v=2026-11-11.8"></script>
-  <script src="js/app.js?v=2026-11-11.8"></script>
+  <script src="vendor/xlsx.full.min.js?v=2026-11-17.1"></script>
+  <script src="js/xlsx-images.js?v=2026-11-17.1"></script>
+  <script src="js/logic.js?v=2026-11-17.1"></script>
+  <script src="js/fieldform.js?v=2026-11-17.1"></script>
+  <script src="js/sample-data.js?v=2026-11-17.1"></script>
+  <script src="js/store.js?v=2026-11-17.1"></script>
+  <script src="js/photos.js?v=2026-11-17.1"></script>
+  <script src="js/charts.js?v=2026-11-17.1"></script>
+  <script src="js/ai-endpoint.js?v=2026-11-17.1"></script>
+  <script src="js/ai-panel.js?v=2026-11-17.1"></script>
+  <script src="js/app.js?v=2026-11-17.1"></script>
+  <!-- 팀 저장소(이 과제 전용) — 로그인 키트보다 먼저 불러야 「팀 저장소」 페이지가 붙습니다. 필요한 SQL = supabase/data.sql -->
+  <script src="js/cloud.js?v=2026-11-17.1"></script>
   <!-- auth-kit: 로그인 · 사용 신청 · 승인(정본 data10-00/kit/auth) -->
-  <script src="vendor/supabase.js?v=2026-11-11.8"></script>
-  <script src="js/auth-config.js?v=2026-11-11.8"></script>
-  <script src="js/board.js?v=2026-11-11.8"></script>
-  <script src="js/auth.js?v=2026-11-11.8"></script>
+  <script src="vendor/supabase.js?v=2026-11-17.1"></script>
+  <script src="js/auth-config.js?v=2026-11-17.1"></script>
+  <script src="js/board.js?v=2026-11-17.1"></script>
+  <script src="js/auth.js?v=2026-11-17.1"></script>
   <!-- /auth-kit -->
 </body>
 </html>

@@ -292,6 +292,9 @@ textarea { width: 100%; min-height: 120px; padding: 8px 10px; border: 1px solid 
 
 /* ── data10-06 추가 ─────────────────────── */
 :root { --danger-soft: #fdecea; --ok-soft: #e3f3e8; --safety-bg: #fff7e0; --safety-line: #e3c25a; }
+.cloud-banner { background: #eaf3fb; color: #12395c; border-bottom: 1px solid #b9d6ee; font-size: .92rem; padding: 10px var(--container-pad); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.cloud-banner[hidden] { display: none; }
+.cloud-banner span { flex: 1 1 320px; word-break: keep-all; overflow-wrap: break-word; }
 .store-banner { background: #fdecea; color: #7a1c14; border-bottom: 1px solid #f0b8b2; font-size: .92rem; padding: 8px var(--container-pad); }
 .linklike { background: none; border: 0; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; }
 .nowrap { flex-wrap: nowrap; }

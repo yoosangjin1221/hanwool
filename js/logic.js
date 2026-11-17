@@ -13,7 +13,7 @@
   'use strict';
   /* 판(版) — index.html 의 ?v= · app.js 의 APP_VERSION 과 같아야 합니다(scripts/bump-version.mjs 로 함께 올림).
      브라우저가 옛 logic.js 와 새 app.js 를 섞어 쓰면 app.js 가 이 값을 보고 계산을 멈춥니다. */
-  var VERSION = '2026-11-11.8';
+  var VERSION = '2026-11-17.1';
 
   var SCHEMA_VERSION = 1;
   var REPAIR = ['외부', '자체'];
@@ -1280,6 +1280,122 @@
     return 'ok';
   }
 
+  /* ── 17. 팀 저장소 — 무엇을 올리고 무엇을 받아 넣을지(계산만, 통신은 js/cloud.js) ──────────
+     기억표(snap) = { ref(프로젝트 주소), at(마지막으로 받은 서버 시각), adopted(이 브라우저가 팀 저장소와 처음 맞췄는가),
+                     cases{ id: { h(내용 지문), p[사진 번호] } }, shared{ key: 지문 }, photos{ 사진 번호: 1 = 팀 저장소에 있음 } }
+     지문은 사례를 cleanCase 로 다듬고 키 순서를 맞춘 뒤 냅니다(서버 jsonb 는 키 순서를 바꿔 돌려주므로). */
+  var CLOUD_SHARED = ['equipments', 'guides', 'nextChecks'];
+  function stableJson(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+    if (Array.isArray(v)) return '[' + v.map(stableJson).join(',') + ']';
+    return '{' + Object.keys(v).filter(function (k) { return v[k] !== undefined; }).sort().map(function (k) { return JSON.stringify(k) + ':' + stableJson(v[k]); }).join(',') + '}';
+  }
+  function cloudHash(s) {
+    s = String(s); var a = 5381, b = 52711;
+    for (var i = 0; i < s.length; i++) { var ch = s.charCodeAt(i); a = ((a << 5) + a + ch) | 0; b = ((b << 5) + b) ^ ch; b |= 0; }
+    return (a >>> 0).toString(36) + '.' + (b >>> 0).toString(36) + '.' + s.length.toString(36);
+  }
+  function cloudCaseBody(c) { return cleanCase(c); }
+  function cloudCaseHash(c) { return cloudHash(stableJson(cleanCase(c))); }
+  function cloudSharedValue(db, k) { return k === 'equipments' ? (db.equipments || []).map(cleanEquipment) : (db[k] && typeof db[k] === 'object' ? db[k] : {}); }
+  function cloudSnap(ref) { return { ref: str(ref), at: '', adopted: false, cases: {}, shared: {}, photos: {} }; }
+  function cloudRestoreSnap(o, ref) {
+    var s = cloudSnap(ref);
+    if (!o || typeof o !== 'object' || str(o.ref) !== str(ref)) return s;
+    s.at = str(o.at); s.adopted = !!o.adopted;
+    ['cases', 'shared', 'photos'].forEach(function (k) { if (o[k] && typeof o[k] === 'object') s[k] = o[k]; });
+    return s;
+  }
+  function photoIdsOf(c) { return ((c && c.photos) || []).map(function (p) { return p.id; }); }
+  /* 올릴 것 — upserts(새로 생겼거나 바뀐 사례) · deletes(이 브라우저에서 지운 사례 번호) · shared(바뀐 설정 이름)
+     · photoAdds(팀 저장소에 아직 없는 사진) · photoDels(바뀐 · 지운 사례에서 빠진 사진)
+     · risky(한 번에 너무 많이 지워짐 — 모두 지우기 · 되살리기 같은 통째 교체일 수 있어 물어보고 올립니다) */
+  function cloudPlan(snap, db) {
+    var have = {}, used = {}, out = { upserts: [], deletes: [], shared: [], photoAdds: [], photoDels: [], risky: false };
+    var gone = {};
+    (db.cases || []).forEach(function (c) {
+      have[c.id] = 1; photoIdsOf(c).forEach(function (id) { used[id] = 1; });
+      var old = snap.cases[c.id], h = cloudCaseHash(c);
+      if (!old || old.h !== h) { out.upserts.push(c); if (old) (old.p || []).forEach(function (id) { gone[id] = 1; }); }
+    });
+    Object.keys(snap.cases).forEach(function (id) { if (!have[id]) { out.deletes.push(id); (snap.cases[id].p || []).forEach(function (x) { gone[x] = 1; }); } });
+    CLOUD_SHARED.forEach(function (k) { if (cloudHash(stableJson(cloudSharedValue(db, k))) !== snap.shared[k]) out.shared.push(k); });
+    Object.keys(used).forEach(function (id) { if (!snap.photos[id]) out.photoAdds.push(id); });
+    Object.keys(gone).forEach(function (id) { if (!used[id]) out.photoDels.push(id); });
+    var known = Object.keys(snap.cases).length;
+    out.risky = out.deletes.length >= 5 && out.deletes.length * 2 > known;
+    out.empty = !out.upserts.length && !out.deletes.length && !out.shared.length && !out.photoAdds.length && !out.photoDels.length;
+    return out;
+  }
+  function cloudMarkCase(snap, c) { snap.cases[c.id] = { h: cloudCaseHash(c), p: photoIdsOf(c) }; }
+  function cloudMarkShared(snap, db, k) { snap.shared[k] = cloudHash(stableJson(cloudSharedValue(db, k))); }
+  /* 받은 것을 넣기 — rows[{ id, body, deleted, updated_at }] · sharedRows[{ key, body }]. db · snap 을 고치고 무엇이 바뀌었는지 돌려줍니다.
+     남이 올린 사례의 사진은 「팀 저장소에 있음」으로 적어 둡니다(올린 쪽이 사진을 먼저 올리고 사례를 올립니다). */
+  function cloudMerge(db, snap, rows, sharedRows) {
+    var r = { added: 0, updated: 0, removed: 0, shared: 0 }, at = snap.at;
+    var idx = {}; (db.cases || []).forEach(function (c, i) { idx[c.id] = i; });
+    var drop = {};
+    (rows || []).forEach(function (row) {
+      if (!row || !row.id) return;
+      if (row.updated_at && String(row.updated_at) > at) at = String(row.updated_at);
+      if (row.deleted || !row.body) {
+        if (idx[row.id] != null) { drop[row.id] = 1; r.removed++; }
+        delete snap.cases[row.id];
+        return;
+      }
+      var c = cleanCase(row.body); c.id = row.id;
+      var h = cloudHash(stableJson(c));
+      // 사진을 「팀 저장소에 있음」으로 적는 것은 남이 올린 사례일 때만 — 내가 올린 사례가 되돌아온 것이면 아직 못 올린 사진이 있을 수 있습니다
+      var fromOthers = false;
+      if (idx[row.id] != null) {
+        if (cloudCaseHash(db.cases[idx[row.id]]) !== h) { db.cases[idx[row.id]] = c; r.updated++; fromOthers = true; }
+      } else { idx[row.id] = db.cases.length; db.cases.push(c); r.added++; fromOthers = true; }
+      if (fromOthers) photoIdsOf(c).forEach(function (id) { snap.photos[id] = 1; });
+      delete drop[row.id];
+      snap.cases[row.id] = { h: h, p: photoIdsOf(c) };
+    });
+    if (r.removed) db.cases = db.cases.filter(function (c) { return !drop[c.id]; });
+    (sharedRows || []).forEach(function (row) {
+      if (!row || CLOUD_SHARED.indexOf(row.key) < 0 || row.body == null) return;
+      var v = row.key === 'equipments' ? (Array.isArray(row.body) ? row.body.map(cleanEquipment).filter(function (e) { return e.name; }) : null) : (typeof row.body === 'object' && !Array.isArray(row.body) ? row.body : null);
+      if (v == null) return;
+      var h = cloudHash(stableJson(v));
+      if (cloudHash(stableJson(cloudSharedValue(db, row.key))) !== h) { db[row.key] = v; r.shared++; }
+      snap.shared[row.key] = h;
+    });
+    snap.at = at;
+    r.changed = r.added + r.updated + r.removed + r.shared;
+    return r;
+  }
+  /* 처음 맞출 때 — 이 브라우저에만 있는 사례(팀 저장소에 없거나, 같은 번호인데 내용이 다른 것) */
+  function cloudLocalOnly(db, rows) {
+    var cloud = {}; (rows || []).forEach(function (row) { if (row && row.id && !row.deleted && row.body) { var c = cleanCase(row.body); c.id = row.id; cloud[row.id] = cloudHash(stableJson(c)); } });
+    return (db.cases || []).filter(function (c) { return cloud[c.id] !== cloudCaseHash(c); });
+  }
+  /* 처음 맞출 때 — 번호가 팀 저장소의 다른 사례와 겹치는 것은 새 번호로(덮어쓰지 않게). mkId() 는 새 번호를 줍니다. */
+  function cloudReid(db, rows, mkId) {
+    var cloud = {}; (rows || []).forEach(function (row) { if (row && row.id) cloud[row.id] = row; });
+    var n = 0;
+    (db.cases || []).forEach(function (c) {
+      var row = cloud[c.id]; if (!row) return;
+      if (!row.deleted && row.body) { var x = cleanCase(row.body); x.id = row.id; if (cloudHash(stableJson(x)) === cloudCaseHash(c)) return; }
+      c.id = mkId(); n++;
+    });
+    return n;
+  }
+  /* 처음 맞출 때 설정 합치기 — 설비는 이름 기준으로 팀 것 + 이 브라우저에만 있는 것, 가이드 수정은 팀 것이 우선 */
+  function cloudFoldShared(db, sharedRows) {
+    var by = {}; (sharedRows || []).forEach(function (row) { if (row && row.key) by[row.key] = row.body; });
+    if (Array.isArray(by.equipments)) {
+      var seen = {}, out = by.equipments.map(cleanEquipment).filter(function (e) { return e.name && !seen[e.name] && (seen[e.name] = 1); });
+      (db.equipments || []).forEach(function (e) { if (e.name && !seen[e.name]) { seen[e.name] = 1; out.push(cleanEquipment(e)); } });
+      db.equipments = out;
+    }
+    ['guides', 'nextChecks'].forEach(function (k) {
+      if (by[k] && typeof by[k] === 'object' && !Array.isArray(by[k])) { var m = {}, a = db[k] || {}; Object.keys(a).forEach(function (x) { m[x] = a[x]; }); Object.keys(by[k]).forEach(function (x) { m[x] = by[k][x]; }); db[k] = m; }
+    });
+  }
+
   return {
     VERSION: VERSION,
     SCHEMA_VERSION: SCHEMA_VERSION, REPAIR: REPAIR, TAGS: TAGS, CAUSE_GROUPS: CAUSE_GROUPS, FIELDS: FIELDS, DEFAULT_OPTS: DEFAULT_OPTS,
@@ -1297,6 +1413,10 @@
     missingRequired: missingRequired, applyMapping: applyMapping, mergeCases: mergeCases, casesToAoa: casesToAoa, templateAoa: templateAoa,
     emptyDb: emptyDb, restoreDb: restoreDb, cleanEquipment: cleanEquipment, syncEquipments: syncEquipments, equipTypes: equipTypes,
     buildBackup: buildBackup, parseBackup: parseBackup,
+    // 팀 저장소(계산)
+    CLOUD_SHARED: CLOUD_SHARED, stableJson: stableJson, cloudHash: cloudHash, cloudCaseBody: cloudCaseBody, cloudCaseHash: cloudCaseHash, cloudSharedValue: cloudSharedValue,
+    cloudSnap: cloudSnap, cloudRestoreSnap: cloudRestoreSnap, cloudPlan: cloudPlan, cloudMarkCase: cloudMarkCase, cloudMarkShared: cloudMarkShared,
+    cloudMerge: cloudMerge, cloudLocalOnly: cloudLocalOnly, cloudReid: cloudReid, cloudFoldShared: cloudFoldShared,
     fitSize: fitSize, allPhotoIds: allPhotoIds, photoBytes: photoBytes, orphanPhotoIds: orphanPhotoIds, storageLevel: storageLevel,
     // 2차(실제 수리이력 반영)
     PREC_TEXT: PREC_TEXT, COST_KIND_TEXT: COST_KIND_TEXT, UNKNOWN_CAUSE: UNKNOWN_CAUSE, CHECK_FIELDS: CHECK_FIELDS, RECOMMENDED_HEAD: RECOMMENDED_HEAD, SYNONYMS: SYNONYMS,
