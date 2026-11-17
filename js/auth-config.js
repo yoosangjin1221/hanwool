@@ -5,7 +5,7 @@ window.AUTH_CONFIG = {
   "url": "https://kyjvmnzuoqqfiopgkklo.supabase.co",
   "anonKey": "sb_publishable_uLnsKY1fErD_awfyvkvU2w_qw-f3WHl",
   "prefix": "data1006",
-  "kakao": true,
+  "kakao": false,
   "idleMinutes": 30,
   "localBypass": true,
   "board": true,
